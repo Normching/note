@@ -22,10 +22,10 @@ Vue3.x改用`Proxy`替代`Object.defineProperty`。因为Proxy可以直接监听
 ## nextTick实现原理是什么？
 在下次`DOM`更新循环结束之后执行延迟回调。`nextTick`主要使用了宏任务和微任务。
 根据执行环境分别尝试采用
-- Promise
-- MutationObserver
-- setImmediate
-- 如果以上都不行则采用setTimeout
+- Promise (微任务)
+- MutationObserver (微任务)
+- setImmediate (宏任务)
+- 如果以上都不行则采用setTimeout (宏任务)
 
 定义了一个异步方法，多次调用`nextTick`会将方法存入队列中，通过这个异步方法清空当前队列。
 
@@ -98,3 +98,99 @@ Vue3.x借鉴了ivi算法和inferno算法
 再创建VNode时就确定其类型，以及在`mount/patch`的过程中采用**位运算**来判断一个VNode的类型，在这个基础之上再配合核心的Diff算法，使得性能上较Vue2.x有了提升。
 
 该算法中还运用了**动态规划**的思想求解最长递归子序列。
+
+## 14.虚拟DOM和key属性的作用
+由于在浏览器中操作DOM是很昂贵的。频繁的操作DOM，会产生一定的性能问题。这就是虚拟DOM的**产生圆心**。
+
+Vue2的`Virtual DOM`借鉴了开源库`snabbdom`的实现。
+
+**`Virtual DOM`本质就是一个用一个原生的JS对象去描述一个DOM节点。是对真实DOM的一层抽象。**（也就是源码中的VNode类，它定义在src/code/vdom/vnode.js中。）
+
+`Virtual DOM`映射到真实DOM需要经历VNode的create、diff、patch等阶段。
+
+### 『key的作用是尽可能的复用 DOM 元素』
+新旧的`children`中的节点只有顺序不同的时候，最佳的操作应该是通过移动元素的位置来达到更新的目的。
+
+需要在新旧`children`的节点中保存映射关系，以便能够在旧`children`的节点中找到可复用的节点。`key`也就是`children`中节点的唯一标识。
+
+## 15.keep-alive
+`keep-alive`可以实现组件缓存，当组件切换时不会对当前组件进行卸载。
+
+常用的两个属性`include/exclude`，允许组件有条件的进行缓存。
+
+两个生命周期`activated/deavtivated`，用来得知当前组件是否处于活跃状态。
+
+`keep-alive`中还运用了`LRU(Least Recentl Used)`算法。
+
+## 16.Vue中生命周期调用顺序
+组件的调用顺序是**先父后子**，渲染完成的顺序是**先子后父**。
+
+组件的销毁操作是**先父后子**，销毁完成的顺序是**先子后父**。
+
+<u>加载渲染过程</u>  
+`父beforeCreate -> 父created -> 父beforeMount -> 子beforeCreate -> 子created ->  子beforeMount -> 子mounted -> 父mounted`
+
+<u>子组件更新过程</u>  
+`父beforeUpdate -> 子beforeUpdate -> 子updated -> 父updated`
+
+<u>父组件更新过程</u>  
+`父beforeUpdate -> 父update`
+
+<u>销毁过程</u>  
+`父beforeDestroy -> 子beforeDestroy -> 子destroyed -> 父destroyed`
+
+## 17.Vue2.x的组件通信有哪些方式？
+- 父子组件通信  
+  父 -> 子`props`，子 -> 父`$on、$emit`  
+  获取父组件实例`$parent、$children`  
+  `Ref`获取实例的方式调用组件的属性或者方法  
+  `Provide、inject`官方不推荐使用，但是写组件库时很常用
+
+- 兄弟组件通信  
+  `Event Bus`实现跨组件通信`Vue.prototype.$bug = new Vue`  
+  `Vuex`
+
+- 跨级组件通信
+  `Vuex`  
+  `$attrs、$listeners`  
+  `Provide、inject`
+
+## 18.SSR
+SSR也就是服务端渲染，**也就是将Vue在客户端把标签渲染成HTML的工作放在服务端完成，然后再把HTML直接返回给客户端**。
+
+SSR有这更好的SEO，并且首屏加载速度更快等优点。  
+不过他也有一些缺点，比如开发条件会受限，服务端渲染只支持`beforeCreate`和`created`两个钩子，当需要一些外部扩展库时需要特殊处理，服务端渲染 应用程序也需要处于Node.js的运行环境。还有就是服务器会有更大的负载需求。
+
+## 19.做过哪些Vue的性能优化
+- 编码阶段
+  - 尽量减少data中的数据，data中的数据会增加getter和setter，会收集对应的watcher
+  - v-if和v-for不能连用
+  - 如果需要使用v-for给每项元素绑定事件时使用事件代理
+  - SPA页面采用keep-alive缓存组件
+  - 在更多的情况下，使用v-if代替v-show
+  - key保证唯一
+  - 使用路由懒加载、异步组件
+  - 防抖、节流
+  - 第三方模块按需引入
+  - 长列表滚动到可视区域动态加载
+  - 图片懒加载
+- SEO优化
+  - 预渲染
+  - 服务端渲染SSR
+- 打包优化
+  - 压缩代码
+  - Tree Shaking/Scope Hoisting
+  - 使用CDN加载第三方模块
+  - 多线程打包happypack
+  - splitChunk抽离公共文件
+  - sourceMap优化
+- 用户体验
+  - 骨架屏
+  - PWA
+    
+还可以使用缓存（客户端缓存、服务端缓存）优化、服务端开启gzip压缩等。
+
+## 20.hash路由和history路由实现原理
+`location.hash`的值实际就是URL中`#`后面的东西
+
+history实际采用了HTML5中提供的API来实现的，主要有`history.pushState()`和`history.replaceState()`。
