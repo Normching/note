@@ -62,3 +62,58 @@ Webpack的运行流程是一个串行的过程，从启动到结束会依次执�
 - 初始化：启动构建，读取与合并配置参数，加载Plugin，实例化Compiler
 - 编译：从Entry出发，针对每个Module串行调用对应的Loader去翻译文件的内容，再找到该Module依赖的Module，递归地进行编译处理
 - 输出：将编译后的Module组合成Chunk，将Chunk转换成文件，输出到文件系统中
+
+## 使用webpack开发时，用过哪些可以提高效率的插件？
+- `webpack-dashboard`：可以更友好的展示相关打包信息
+- `webpack-merge`：提取公共配置，减少重复配置代码
+- `speed-measure-webpack-plugin`：简称SMP，分析出Webpack打包过程中Loader和Plugin的耗时，有助于找到构建过程中的性能瓶颈
+- `size-plugin`：监控资源体积变化，尽早发现问题
+- `HotModuleReplacementPlugin`：模块热替换
+
+## source map是什么？生产环境怎么用？
+`source map`是将编译、打包、压缩后的代码映射回源代码的过程。打包压缩后的代码不具备良好的可读性，想调试源码就需要source map。
+
+map文件只要不打开开发者工具，浏览器是不会加载的。
+
+线上环境一般有三种处理方案：
+- `hidden-source-map`：借助第三方错误监控平台Sentry使用
+- `nosources-source-map`：只会显示具体行数以及查看源代码的错误栈。安全性比source map高
+- `sourcemap`：通过Nginx设置将.map文件只对白名单开放（公司内网）
+  
+注意：避免在生产中使用`inline`和`eval-`，因为它们会增加`bundle`体积大小，并降低整体性能。
+
+## 6.模块打包原理
+Webpack实际上为每个模块创造了一个可以导出和导入的环境，本质上并没有修改代码的执行逻辑，代码执行顺序与模块加载顺序也完全一致。
+
+## 7.文件监听原理
+在发现源代码发生变化时，自动重新构建出新的输出文件。
+
+Webpack开启监听模式，有两种方式：
+- 启动Webpack命令时，带上`--watch`参数
+- 在配置`webpack.config.js`中设置`watch: true`
+
+缺点：每次需要手动刷新浏览器
+
+原理：轮询判断文件的最后编辑时间是否变化，如果某个文件发生了变化，并不会立刻告诉监听者，而是先缓存起来，等`aggregateTimeout`后再执行。
+```js
+module.export = {
+  // 默认false，也就是不开启
+  watch: true,
+  // 只有开启监听模式时，watchOptions才有意义
+  watchOptions: {
+    // 默认为空，不监听的文件或者文件夹，支持正则匹配
+    ignored: /node_modules/,
+    // 监听到变化发生后会等300ms再去执行，默认300ms
+    aggregateTimeout: 300,
+    // 判断文件是否发生变化是通过不停询问系统指定文件有没有变化实现的，默认每秒问1000次
+    poll: 1000
+  }
+}
+```
+
+## 8.Webpack的热更新原理
+`Webpack`的热更新又称热替换（`Hot Module Replacement`），缩写`HMR`。这个机制可以做到不用刷新浏览器而将新变更的模块替换掉旧的模块。
+
+HMR的核心就是客户端从服务端拉取更新后的文件，准确的说是 chunk diff（chunk需要更新的部分），实际上WDS与浏览器之间维护了一个`Websocket`，当本地资源发生变化时，WDS会向浏览器推送更新，并带上构建时的hash，让客户端与上一次资源进行对比。客户端对比出差异后会向WDS发送`Ajax`请求来获取更改内容（文件列表、hash），这样客户端就可以再借助这些信息继续向WDS发起`jsonp`请求获取该chunk的增量更新。
+
+后续的部分（拿到增量更新之后如何处理？哪些状态该保留？哪些又需要更新？）由`HotModulePlugin`来完成，提供了相关API以供开发者针对自身场景进行处理，像`react-hot-loader`和`vue-loader`都是借助这些API实现HMR。
