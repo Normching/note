@@ -117,3 +117,86 @@ module.export = {
 HMR的核心就是客户端从服务端拉取更新后的文件，准确的说是 chunk diff（chunk需要更新的部分），实际上WDS与浏览器之间维护了一个`Websocket`，当本地资源发生变化时，WDS会向浏览器推送更新，并带上构建时的hash，让客户端与上一次资源进行对比。客户端对比出差异后会向WDS发送`Ajax`请求来获取更改内容（文件列表、hash），这样客户端就可以再借助这些信息继续向WDS发起`jsonp`请求获取该chunk的增量更新。
 
 后续的部分（拿到增量更新之后如何处理？哪些状态该保留？哪些又需要更新？）由`HotModulePlugin`来完成，提供了相关API以供开发者针对自身场景进行处理，像`react-hot-loader`和`vue-loader`都是借助这些API实现HMR。
+
+## 9.如果对bundle体积进行监控和分析？
+`VSCode`中有一个插件`Import Cost`可以帮助我们对引入模块的大小进行实时监测，还可以使用`webpack-bundle-analyzer`生成`bundle`的模块组成图，显示所占体积。
+
+`bundlesize`工具包可以进行自动化资源体积监控。
+
+## 10.文件指纹是什么？怎么用？
+文件指纹是打包后输出的文件名的后缀
+- `Hash`：和整个项目的构建相关，只要项目文件有修改，整个项目构建的hash值就会更改
+- `Chunkhash`：和Webpack打包的chunk有关，不同的entry会生出不同的chunkhash
+- `Contenthash`：根据文件内容来定义hash，文件内容不变，则contenthash不变
+
+### JS的文件指纹设置
+设置`output`的`filename`，用`chunkhash`。
+```js
+module.exports = {
+  entry: {
+    app: './src/app.js',
+    search: './src/search.js'
+  },
+  output: {
+    filename: '[name][chunkhash:8].js',
+    path: __dirname + './dist'
+  }
+}
+```
+
+### CSS的文件指纹设置
+设置`MiniCSsExtractPlugin`的`filename`，使用`contenthash`。
+```js
+module.exports = {    
+  entry: {        
+    app: './scr/app.js',   
+    search: './src/search.js'
+  },
+  output: {
+    filename: '[name][chunkhash:8].js',
+    path:__dirname + '/dist'
+  },
+  plugins:[
+    new MiniCssExtractPlugin({
+      filename: `[name][contenthash:8].css`
+    })
+  ]
+}
+```
+
+### 图片的文件指纹设置
+设置file-loader的name，使用hash。
+占位符名称及含义
+- ext 资源后缀名
+- name 文件名称
+- path 文件的相对路径
+- folder 文件所在的文件夹
+- contenthash 文件的内容hash，默认是md5生成
+- hash 文件内容的hash，默认是md5生成
+- emoji 一个随机的指代文件内容的emoji
+
+```js
+const path = require('path');
+
+module.exports = {
+  entry: './src/index.js',
+  output: {
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist')
+  },
+  module: {
+    rules: [{
+      test: /\.(png|svg|jpg|gif)$/,
+      use: [{
+        loader: 'file-loader',
+        options: {
+          name: 'img/[name][hash:8].[ext]'
+        }
+      }]
+    }]
+  }
+}
+```
+
+## 11.在实际工程中，配置文件上百行乃是常事，如何保证各个loader按照预想方式工作？
+可以使用`enforce`强制执行`loader`的作用顺序，`pre`代表在所有正常loader之前执行，`post`是所有loader之后执行。（inline官方不推荐使用）
