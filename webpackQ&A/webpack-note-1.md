@@ -266,7 +266,7 @@ Loader 支持链式调用，所以开发上需要严格遵循“单一职责”�
   - NPM link
   - ResolveLoader
 
-## 简单描述一下编写Plugin的思路
+## 15.简单描述一下编写Plugin的思路
 Webpack在运行的生命周期中会广播出许多事件，Plugin 可以监听这些事件，在特定的阶段钩入想要添加的自定义功能。Webpack的 Tapable 事件流机制保证了插件的有序性，使得整个系统扩展性良好。
 
 [Plugin API](https://www.webpackjs.com/api/plugins/)
