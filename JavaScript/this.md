@@ -132,4 +132,132 @@ demo();
 `this`永远指向的都是最后调用它的对象，也就是看它执行的时候是谁调用的。  
 上面的例子中虽然函数`fn`是被对象b所引用了，但是在将`fn`赋值给变量`demo`的时候并没有执行，所以最终`this`指向的是`window`。
 
-### 情况3：
+### 情况3：call、apply、bind
+```js
+function returnThis() {
+  return this;
+}
+var user = { name: "nacho" };
+
+returnThis();           // window
+returnThis.call(user);  // nacho
+returnThis.apply(user); // nacho
+```
+这里就是`Object.prototype.call`和`Object.prototype.apply`方法，他们可以用过参数来执行`this`
+
+```js
+function returnThis() {
+  return this;
+}
+
+var user1 = { name: "nacho" };
+var user1returnThis = returnThis.bind(user1);
+user1returnThis(); // nacho
+var user2 = { name: "normching" }；
+user1returnThis.call(user2); // nacho
+```
+`Object.prototype.bind`通过一个新函数来提供了永久的绑定，而且会覆盖`call`和`apply`的指向
+
+### 情况4：构造函数
+```js
+function Fn() {
+  this.user = "nacho";
+}
+var demo = new Fn();
+console.log(demo.user); // nacho
+```
+这里`new`关键字改变了`this`的指向，`new`关键字创建了一个对象实例，所以可以通过对象`demo``.`语法调用函数`Fn`里面的`user`  
+这个`this`指向对象`demo`  
+
+注意：这里`new`会覆盖`bind`的绑定
+```js
+function demo() {
+  console.log(this);
+}
+
+demo(); // window
+new demo(); // demo
+var user1 = { name: "nacho" };
+demo.call(user1); // nacho
+
+var user2 = demo.bind(user1);
+user2(); // nacho
+new user2(); // demo
+```
+
+构造函数的prototype
+```js
+function Fn() {
+  this.name = "nacho";
+}
+Fn.prototype.getName = function () {
+  console.log(this.name);
+}
+var f1 = new Fn();
+f1.getName(); // nacho
+```
+**不仅仅是构造函数的prototype，即便是在整个原型链中，this代表的也是当前对象的值。**
+
+### 情况5：return
+```js
+function fn() {
+  this.user = "nacho";
+  return {}
+}
+var a = new fn;
+console.log(a.user); // undefined
+
+function fn() {
+  this.user = "nacho";
+  return function() {};
+}
+var a = new fn;
+console.log(a.user); // undefined
+
+function fn() {
+  this.user = "nacho";
+  return 1;
+}
+var a = new fn;
+console.log(a.user); // nacho
+
+function fn() {
+  this.user = "nacho";
+  return undefined;
+}
+var a = new fn;
+console.log(a.user); // nacho
+```
+总结：  
+如果返回值是一个对象，那么`this`指向就是返回的对象；
+如果返回值不是一个对象，那么`this`还是指向函数的实例；
+
+`null`比较特殊，虽然它是对象，但是这里`this`还是指向那个函数的实例。
+```js
+function fn() {
+  this.user = "nacho";
+  return null;
+}
+var a = new fn;
+console.log(a.user); // nacho
+```
+
+### 情况6：箭头函数
+箭头函数中的this在代码运行前就已经被确定了，谁也不能把它覆盖。  
+为了方便让回调函数中this使用当前作用域，让this指针更加的清晰，所以对于箭头函数中this的指向，只要看它创建的位置即可。
+```js
+function callback(aaa) {
+  aaa();
+}
+callback(() => { console.log(this) }); //window
+
+var user = {
+  name: "nacho",
+  callback: callback,
+  callback1() {
+    callback(() => { console.log(this) });
+  }
+}
+user.callback(() => { console.log(this) }); // window
+user.callback1(() => { console.log(this) }); // user
+```
