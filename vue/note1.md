@@ -3,7 +3,7 @@
 MVVM是`Model-View-ViewModel`缩写，也就是把`MVC`中的`Controller`演变成`ViewModel`。`Model`层代表数据模型，`View`层代表UI组件，`ViewModel`是View和Model层的桥梁，数据会绑定到ViewModel层并自动将数据渲染到页面中，视图变化的时候会通知ViewModel层更新数据。
 
 ## 1.Vue2.x响应式数据原理
-Vue在初始化数据时，会使用`Object.defineProperty`重新定义data中的所有属性，当页面使用对应属性时，首先会进行依赖收集（收集组当前组件的`watcher`），如果属性发生变化会通知相关依赖进行更新操作（发布订阅）。
+Vue在初始化数据时，会使用`Object.defineProperty`重新定义data中的所有属性，当页面使用对应属性时，首先会进行依赖收集（收集当前组件的`watcher`），如果属性发生变化会通知相关依赖进行更新操作（发布订阅）。
 
 ## 2.Vue3.x响应式数据原理
 Vue3.x改用`Proxy`替代`Object.defineProperty`。因为Proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。并且作为新标准将受到浏览器厂商重点持续的性能优化。
