@@ -12,7 +12,7 @@ MVVM是`Model-View-ViewModel`缩写。`Model`代表数据模型层，`View`代�
 
 
 ## 1.Vue2.x响应式数据原理
-Vue在初始化数据时，会使用`Object.defineProperty`重新定义`data`中的所有属性，`Object.defineProperty`可以使数据的获取与设置增加一个拦截的功能，拦截属性的获取，进行依赖收集。拦截属性的更新操作，进行通知。
+Vue在初始化数据时，会使用`Object.defineProperty`重新定义`data`中的所有属性，`Object.defineProperty`可以使数据的获取与设置增加一个拦截的功能，拦截属性的获取操作，进行依赖收集。拦截属性的更新操作，进行通知依赖更新。
 具体过程：  
 首先Vue使用`initData`初始化用户传入的参数，然后使用`new Observer`对数据进行观测，如果数据是一个对象类型就会调用`this.walk(value)`对对象进行处理，内部使用`defineReactive`循环对象属性定义响应式变化，核心就是使用`Object.defineProperty`重新定义数据。
 
@@ -29,7 +29,7 @@ Vue3.x改用`Proxy`替代`Object.defineProperty`。因为Proxy可以直接监听
 ## vue2.x中如何监测数组变化
 使用了函数劫持的方式，重写了数组的方法，Vue将data中的数组进行了原型链重写，指向了自己定义的数组原型方法。这样当调用数组api时，可以通知依赖更新。如果数组中包含着引用类型，会对数组中的引用类型再次递归遍历进行监控。这样就实现了监测数组变化。
 
-[原型链]()
+[原型链](./../JavaScript/3.原型链.md)
 
 
 ## 为什么Vue采用异步渲染？
@@ -46,8 +46,8 @@ Vue3.x改用`Proxy`替代`Object.defineProperty`。因为Proxy可以直接监听
 
 定义了一个异步方法，多次调用`nextTick`会将方法存入队列中，通过这个异步方法清空当前队列。
 
-[事件循环]()
-[宏任务与微任务]()
+[事件循环](./../JavaScript/4.事件循环.md)
+[宏任务与微任务](./../JavaScript/4.事件循环.md)
 
 
 ## Vue的生命周期
