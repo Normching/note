@@ -132,7 +132,7 @@ Vue3.x借鉴了ivi算法和inferno算法
 4. 旧后与新前（头与尾比，此种发生了涉及移动节点，那么新前指向的节点，移动到旧前之前）
 
 ## 14.虚拟DOM和key属性的作用
-由于在浏览器中操作DOM是很昂贵的。频繁的操作DOM，会产生一定的性能问题。这就是虚拟DOM的**产生圆心**。
+由于在浏览器中操作DOM开销是很昂贵的。频繁的操作DOM，会产生一定的性能问题。这就是虚拟DOM的**产生原因**。
 
 Vue2的`Virtual DOM`借鉴了开源库`snabbdom`的实现。
 
@@ -154,7 +154,7 @@ Vue2的`Virtual DOM`借鉴了开源库`snabbdom`的实现。
 
 `keep-alive`中还运用了`LRU(Least Recentl Used)`算法。
 
-## 16.Vue中生命周期调用顺序
+## 16.Vue中生命周期调用顺序 组件调用顺序
 组件的调用顺序是**先父后子**，渲染完成的顺序是**先子后父**。
 
 组件的销毁操作是**先父后子**，销毁完成的顺序是**先子后父**。
@@ -179,7 +179,7 @@ Vue2的`Virtual DOM`借鉴了开源库`snabbdom`的实现。
   - `Provide、inject`官方不推荐使用，但是写组件库时很常用
 
 - 兄弟组件通信  
-  - `Event Bus`实现跨组件通信`Vue.prototype.$bug = new Vue`  
+  - `Event Bus`实现跨组件通信`Vue.prototype.$bus = new Vue`  
   - `Vuex`
 
 - 跨级组件通信
@@ -234,3 +234,8 @@ history实际采用了HTML5中提供的API来实现的，主要有`history.pushS
 ## 描述组件渲染和更新过程
 渲染组件时，会通过`vue.extend()`方法构建子组件的构造函数，并进行实例化。最终手动调用`$mount()`进行挂载。  
 更新组件时会进行`patchVnode`流程，核心就是`diff`算法。
+
+
+需要补充更正的知识点  
+1. 用VNode来描述一个DOM结构
+2. 虚拟DOM和key属性的作用
