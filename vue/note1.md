@@ -136,7 +136,7 @@ Vue3.x借鉴了ivi算法和inferno算法
 
 Vue2的`Virtual DOM`借鉴了开源库`snabbdom`的实现。
 
-**`Virtual DOM`本质就是一个用一个原生的JS对象去描述一个DOM节点。是对真实DOM的一层抽象。**（也就是源码中的VNode类，它定义在src/code/vdom/vnode.js中。）
+**`Virtual DOM`本质就是用一个原生的JS对象去描述一个DOM节点。是对真实DOM的一层抽象。**（也就是源码中的VNode类，它定义在src/code/vdom/vnode.js中。）
 
 `Virtual DOM`映射到真实DOM需要经历VNode的create、diff、patch等阶段。
 
