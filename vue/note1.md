@@ -16,8 +16,13 @@ Vue在初始化数据时，会使用`Object.defineProperty`重新定义`data`中
 具体过程：  
 首先Vue使用`initData`初始化用户传入的参数，然后使用`new Observer`对数据进行观测，如果数据是一个对象类型就会调用`this.walk(value)`对对象进行处理，内部使用`defineReactive`循环对象属性定义响应式变化，核心就是使用`Object.defineProperty`重新定义数据。
 
+### `Object.defineProperty` 有什么缺陷？
+
+- `Object.defineProperty` 无法监控到数组下标变化，导致通过数组下标添加元素，不能实现实时响应；
+- `Object.defineProperty` 只能劫持对象的属性，从而需要对每个对象，每个属性进行遍历，如果属性值是对象，还需要深度遍历。`Proxy`可以劫持整个对象，并返回一个新的对象。
+
 ## 2.Vue3.x响应式数据原理
-Vue3.x改用`Proxy`替代`Object.defineProperty`。因为Proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。并且作为新标准将受到浏览器厂商重点持续的性能优化。
+Vue3.x改用`Proxy`替代`Object.defineProperty`。因为Proxy可以直接监听对象和数组的变化，还可以代理动态增加的属性，并且有多达13种拦截方法。并且作为新标准将受到浏览器厂商重点持续的性能优化。
 
 ### Proxy只会代理对象的第一层，那么Vue3又是怎样处理这个问题的呢？
 判断当前`Reflect.get`的返回值是否为`Object`，如果是则再通过`reactive`方法做代理，这样就是实现了深度观测。
@@ -220,6 +225,7 @@ SSR有这更好的SEO，并且首屏加载速度更快等优点。
   - 骨架屏
   - PWA
     
+
 还可以使用缓存（客户端缓存、服务端缓存）优化、服务端开启gzip压缩等。
 
 ## 20.hash路由和history路由实现原理
