@@ -14,7 +14,7 @@
 - background-attachment: fixed
   `fixed`此关键词表示背景相对于视口固定。及时一个元素拥有滚动机制，背景也不会随着元素的内容滚动。
 
-
+****
 
 ## 让一个div水平垂直居中
 
@@ -23,7 +23,7 @@
     <div class="child"></div>
 </div>
 ```
-1.
+1.flexbox
 
 ```css
 div.parent {
@@ -33,7 +33,7 @@ div.parent {
 }
 ```
 
-2.
+2.absolete绝对定位
 
 ```css
 div.parent {
@@ -69,7 +69,7 @@ div.child {
 }
 ```
 
-3.
+3.grid栅格布局
 
 ```css
 div.parent {
@@ -82,7 +82,7 @@ div.child {
 }
 ```
 
-4.
+4.行内元素
 
 ```scss
 div.parent {
@@ -102,4 +102,6 @@ div.child {
     vertical-align: middle;
 }
 ```
+
+****
 
