@@ -105,3 +105,41 @@ div.child {
 
 ****
 
+## 清除浮动
+
+> 浮动元素会脱离文档流并向左/向右浮动，直到碰到父元素或者另一个浮动元素。
+>
+> 浮动元素并不会占据文档流的位置，如果一个父元素下面都是浮动元素，那么这个父元素就无法被浮动元素所撑开，这样父元素就丢失了高度，这就是所谓的浮动元素造成的父元素高度坍塌问题。
+
+#### BFC清除浮动
+
+计算BFC高度的时候浮动子元素的高度也将计算在内，利用该规则可以清除浮动。
+
+>假设一个父元素 parent 内部只有 2 个子元素 child，且它们都是左浮动的，这个时候 parent 如果没有设置高度的话，因为浮动造成了高度坍塌，所以 parent 的高度会是 0，此时只要给 parent 创造一个 BFC，那它的高度就能恢复了。
+
+产生 BFC 的方式很多，我们可以给父元素设置overflow: auto 来简单的实现 BFC 清除浮动，但是为了兼容 IE 最好用 overflow: hidden。
+
+```css
+.parent {
+    overflow: hidden;
+}
+```
+
+通过 overflow: hidden 来清除浮动并不完美，当元素有阴影或存在下拉菜单的时候会被截断，所以该方法使用比较局限。
+
+#### 通过clear清除浮动
+
+```css
+.clearfix {
+    zoom: 1;
+}
+.clearfix::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+```
+
+![img](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/05edf023dd564a2f8d11ab47c3d56361~tplv-k3u1fbpfcp-zoom-1.image)
+
+> 上面这个 demo 或者图里为了展示需要所以给伪元素的内容设置为了 ::after，实际使用的时候需要设置为空字符串，让它的高度为 0，从而父元素的高度都是由实际的子元素撑开。
