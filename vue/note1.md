@@ -12,14 +12,56 @@
 
 
 ## 1.`Vue2.x`响应式数据原理
-`Vue`在初始化数据时，会使用`Object.defineProperty`重新定义`data`中的所有属性，`Object.defineProperty`可以使数据的获取与设置增加一个拦截的功能，拦截属性的获取操作，进行依赖收集。拦截属性的更新操作，进行通知依赖更新。
+基本原理：
+
+1. `vue` 会遍历此data中对象所有的属性，并使用 `Object.defineProperty` 把这些属性全部转为 `getter/setter` 
+2. 而每个组件实例都有 `watcher` 对象
+3. 他会在组件渲染的过程中把属性记录为依赖
+4. 之后当依赖性的 `setter`  被调用时，会通知 `watcher` 重新计算，从而致使它关联的组件得以更新
+
+
+
+`Vue`在初始化数据时，会使用 `Object.defineProperty` 重新定义`data`中的所有属性，`Object.defineProperty`可以使数据的获取与设置增加一个拦截的功能，拦截属性的获取操作，进行依赖收集。拦截属性的更新操作，进行通知依赖更新。
 具体过程：  
-首先`Vue`使用`initData`初始化用户传入的参数，然后使用`new Observer`对数据进行观测，如果数据是一个对象类型就会调用`this.walk(value)`对对象进行处理，内部使用`defineReactive`循环对象属性定义响应式变化，核心就是使用`Object.defineProperty`重新定义数据。
+
+1. 首先 `Vue.prototype._init(option)` 初始化传入的参数
+2. `initState(vm)` 初始化实例，对`vue`实例中的 props, methods, data, computed 和 watch 数据进行初始化
+3. 使用 `new Observer(data)` 对数据进行观测
+4. 调用 `walk` 方法，遍历 data 中的每一个属性，监听数据的变化
+5. 执行 `defineReactive` 监听数据 `get` 和 `set`  ，核心就是使用 `Object.defineProperty `重新定义数据。
 
 ### `Object.defineProperty` 有什么缺陷？
 
 - `Object.defineProperty` 无法监控到数组下标变化，导致通过数组下标添加元素，不能实现实时响应；
 - `Object.defineProperty` 只能劫持对象的属性，从而需要对每个对象，每个属性进行遍历，如果属性值是对象，还需要深度遍历。`Proxy`可以劫持整个对象，并返回一个新的对象。
+
+
+
+### `vue` 响应式原理设计三个重要对象：`Observer` 、`Watcher` 、`Dep`
+
+- `Observer` 对象：`vue` 中数据对象在初始化过程中转换为 `Observer` 对象
+- `Watcher` 对象：将模板和 `Observer` 对象结合在一起生成 `Watcher` 实例，`Watcher` 是f发布订阅中的订阅者
+- `Dep` 对象：`Watcher`对象和 `Observer`之间的纽带，每一个 `Observer`都有一个`Dep`实例，用来存储订阅者`Watcher`
+
+当属性变化时会执行对象 `Observer` 的 `dep.notify` 方法，这个方法会遍历订阅者`Watcher`列表向其发送消息，`Watcher`会执行`run`方法去更新视图。
+
+依赖关系如下
+
+![](F:\Project\note\img\dep.jpg)
+
+### 总结：
+
+1. 在生命周期的`initState`方法中将data，prop，method，computed，watch中的数据劫持， 通过observe方法与`Object.defineProperty`方法将相关对象转为换`Observer`对象。
+
+2. 然后在`initRender`方法中解析模板，通过`Watcher`对象，`Dep`对象与观察者模式将模板中的 指令与对象的数据建立依赖关系，使用全局对象`Dep.target`实现依赖收集。
+
+3. 当数据变化时，`setter`被调用，触发`Object.defineProperty`方法中的`dep.notify`方法， 遍历该数据依赖列表，执行器`update`方法通知`Watcher`进行视图更新。
+
+- `vue`是无法检测到对象属性的添加和删除，但是可以使用全局`Vue.set`方法（或`vm.$set`实例方法）。
+- `vue`无法检测利用索引设置数组，但是可以使用全局`Vue.set`方法（或`vm.$set`实例方法）。
+- 无法检测直接修改数组长度，但是可以使用`splice`
+
+
 
 ## 2.`Vue3.x`响应式数据原理
 `Vue3.x`改用`Proxy`替代`Object.defineProperty`。因为Proxy可以直接监听对象和数组的变化，还可以代理动态增加的属性，并且有多达13种拦截方法。并且作为新标准将受到浏览器厂商重点持续的性能优化。
