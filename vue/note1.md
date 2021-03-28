@@ -18,15 +18,15 @@
 2. 而每个组件实例都有 `watcher` 对象，它会在组件渲染的过程中把属性记录为依赖
 3. 之后当依赖性的 `setter`  被调用时，会通知 `watcher` 重新计算，从而致使它关联的组件得以更新
 
-
 ~~`Vue`在初始化数据时，会使用 `Object.defineProperty` 重新定义`data`中的所有属性，`Object.defineProperty`可以使数据的获取与设置增加一个拦截的功能，拦截属性的获取操作，进行依赖收集。拦截属性的更新操作，进行通知依赖更新。~~
 
-具体过程：  
-1. 首先 `Vue.prototype._init(option)` 初始化传入的参数
-2. `initState(vm)` 初始化实例，对`vue`实例中的 props, methods, data, computed 和 watch 数据进行初始化
-3. 使用 `new Observer(data)` 对数据进行观测
-4. 调用 `walk` 方法，遍历 data 中的每一个属性，监听数据的变化
-5. 执行 `defineReactive` 监听数据 `get` 和 `set` ，核心就是使用 `Object.defineProperty `重新定义数据。
+~~具体过程:~~   
+
+1. ~~首先 `Vue.prototype._init(option)` 初始化传入的参数~~
+2. ~~`initState(vm)` 初始化实例，对`vue`实例中的 props, methods, data, computed 和 watch 数据进行初始化~~
+3. ~~使用 `new Observer(data)` 对数据进行观测~~
+4. ~~调用 `walk` 方法，遍历 data 中的每一个属性，监听数据的变化~~
+5. ~~执行 `defineReactive` 监听数据 `get` 和 `set` ，核心就是使用 `Object.defineProperty `重新定义数据。~~
 
 ### `vue` 响应式原理设计三个重要对象：`Observer` 、`Watcher` 、`Dep`
 
@@ -38,19 +38,21 @@
 
 依赖关系如下
 
-![](F:\Project\note\img\dep.jpg)
+![](https://i.loli.net/2021/03/25/k7Et3zq6mBwelQC.jpg)
 
 ### 总结：
 1. 在生命周期的`initState`方法中将data，prop，method，computed，watch中的数据劫持， 通过observe方法与`Object.defineProperty`方法将相关对象转为换`Observer`对象。
 
 2. 然后在`initRender`方法中解析模板，通过`Watcher`对象，`Dep`对象与观察者模式将模板中的指令与对象的数据建立依赖关系，使用全局对象`Dep.target`实现依赖收集。
 
-3. 当数据变化时，`setter`被调用，触发`Object.defineProperty`方法中的`dep.notify`方法， 遍历该数据依赖列表，执行器`update`方法通知`Watcher`进行视图更新。
+3. 当数据变化时，`setter`被调用，触发`Object.defineProperty`方法中的`dep.notify`方法， 遍历该数据依赖列表，执行其`update`方法通知`Watcher`进行视图更新。
 
 ### `Object.defineProperty` 有什么缺陷？
 - `vue`是无法检测到对象属性的添加和删除，但是可以使用全局`Vue.set`方法（或`vm.$set`实例方法）。
+  
   >`Object.defineProperty` 只能劫持对象的属性，从而需要对每个对象，每个属性进行遍历，如果属性值是对象，还需要深度遍历。`Proxy`可以劫持整个对象，并返回一个新的对象。
 - `vue`无法检测利用索引设置数组，但是可以使用全局`Vue.set`方法（或`vm.$set`实例方法）。
+  
   >`Object.defineProperty` 无法监控到数组下标变化，导致通过数组下标添加元素，不能实现实时响应；
 - 无法检测直接修改数组长度，但是可以使用`splice`
 
@@ -125,6 +127,26 @@
 ## 8.`v-if`和`v-show`的区别
 当条件不成立时，`v-if`不会渲染DOM元素，`v-show`操作的是样式（`display`），切换当前DOM的显示和隐藏。
 
+### 使用场景
+
+#### v-if
+
+- 某一块代码在运行时条件很少改变，使用v-if较好（v-if有更改的切换开销）
+- 和key结合使用，管理可复用的元素（Vue会尽可能高效地渲染元素，通常会复用已有元素而不是从头开始渲染）
+- 和template配合使用，可以分组渲染代码块
+- 和v-else或者v-else-if结合使用
+- 在组件上使用v-if可触发组件的生命周期函数
+- 与v-for结合使用，v-for比v-if的优先级更高
+- 与transition结合使用，当条件变化时该指令可以触发过渡效果（用于动画切换）
+- 与keep-alive结合使用可以保留组件状态，避免重新渲染
+
+#### v-show
+
+- 需要非常频繁地切换某块代码，使用v-show渲染
+- 当条件变化时该指令触发过渡效果（用于动画切换）
+- 不可用于组件
+- 没有条件语句
+
 ## 9.组件中的`data`为什么是一个函数？
 避免组件中的数据互相影响。一个组件被复用多次的话，也就会创建多个实例。本质上，**这些实例用的都是用一个构造函数**。如果data是对象的话，对象属于引用类型，会影响到所有的实例。所以为了保证组件不同的实例之间data不冲突，data必须是一个函数。
 
@@ -149,7 +171,7 @@
 编译的最后一步是**将优化后的`AST`树转化为可执行的代码**。
 
 ### 用`VNode`来描述一个DOM结构
-首先解析模板`template`，生成`AST语法树`（一种用JavaScript对象的形式来描述整个模板），`AST`树通过`codegen`生成`render`函数，`render`函数里的`_c`方法将它转为虚拟DOM。
+~~首先解析模板`template`，生成`AST语法树`（一种用JavaScript对象的形式来描述整个模板），`AST`树通过`codegen`生成`render`函数，`render`函数里的`_c`方法将它转为虚拟DOM。~~
 
 ## 13.`Vue2.x`和`Vue3.x`渲染器的`diff`算法分别说一下
 简单来说，`diff`算法有一下过程
