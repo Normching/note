@@ -16,7 +16,7 @@
 
 1. `vue` 会遍历此data中对象所有的属性，并使用 `Object.defineProperty` 把这些属性全部转为 `getter/setter` 
 2. 而每个组件实例都有 `watcher` 对象，它会在组件渲染的过程中把属性记录为依赖
-3. 之后当依赖性的 `setter`  被调用时，会通知 `watcher` 重新计算，从而致使它关联的组件得以更新
+3. 之后当依赖属性的 `setter`  被调用时，会通知 `watcher` 重新计算，从而致使它关联的组件得以更新
 
 ~~`Vue`在初始化数据时，会使用 `Object.defineProperty` 重新定义`data`中的所有属性，`Object.defineProperty`可以使数据的获取与设置增加一个拦截的功能，拦截属性的获取操作，进行依赖收集。拦截属性的更新操作，进行通知依赖更新。~~
 

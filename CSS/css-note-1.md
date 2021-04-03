@@ -26,7 +26,7 @@
 1.flexbox
 
 ```css
-div.parent {
+div.parent { /*可用于未知宽高*/
     display: flex;
     justify-content: center;
     align-items: center;
@@ -40,7 +40,7 @@ div.parent {
     position: relative;
 }
 
-div.child {
+div.child { /*可用于未知宽高*/
     position: absolute;
     top: 50%;
     left: 50%;
@@ -143,3 +143,39 @@ div.child {
 ![img](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/05edf023dd564a2f8d11ab47c3d56361~tplv-k3u1fbpfcp-zoom-1.image)
 
 > 上面这个 demo 或者图里为了展示需要所以给伪元素的内容设置为了 ::after，实际使用的时候需要设置为空字符串，让它的高度为 0，从而父元素的高度都是由实际的子元素撑开。
+
+****
+
+## BFC
+
+BFC——block formatting context
+
+具备BFC特性的元素，即独立的渲染区域，或者看成是一个容器，容器内的不会影响到外面的容器。
+
+BFC内部的子元素，在垂直方向边距会发生重叠(取最大值)。
+
+
+
+### BFC的布局规则
+
+1、内部的Box会在垂直方向，由上到下一个接一个地放置。
+
+2、同一个BFC的两个垂直相邻的元素margin会发生重叠，同时会取margin的最大值做重叠部分。
+
+3、BFC就是页面上的一个隔离的独立容器，容器里面的子元素不会影响到外面的元素。
+
+4、BFC的不会与已经float的元素发生重叠。
+
+5、计算BFC的高度时，浮动元素也参与计算。
+
+
+
+### 如何生成BFC
+
+1、float：设置浮动
+
+2、overflow：auto，hidden
+
+3、position：设置absolute或者fixed
+
+4、display：inline-block、flex、inline-flex、table-cell、table-caption
