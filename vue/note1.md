@@ -20,7 +20,7 @@
 
 ~~`Vue`在初始化数据时，会使用 `Object.defineProperty` 重新定义`data`中的所有属性，`Object.defineProperty`可以使数据的获取与设置增加一个拦截的功能，拦截属性的获取操作，进行依赖收集。拦截属性的更新操作，进行通知依赖更新。~~
 
-~~具体过程:~~   
+~~具体过程:~~    
 
 1. ~~首先 `Vue.prototype._init(option)` 初始化传入的参数~~
 2. ~~`initState(vm)` 初始化实例，对`vue`实例中的 props, methods, data, computed 和 watch 数据进行初始化~~

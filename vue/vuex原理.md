@@ -1,0 +1,471 @@
+# Vuex原理
+
+> 参考
+>
+> 《了解VUEX原理》作者：Nordon [掘金](https://juejin.cn/post/6844904081119510536)
+>
+> 《Vue最全知识点，面试必备》作者：阿李卑斯[掘金](https://juejin.cn/post/6844903709055401991)
+>
+> 《遇见面试 Vuex原理解析》作者：凌晨四点半er [掘金](https://juejin.cn/post/6844903950290944007)
+
+
+
+## 什么是Vuex
+
+- Vuex 是一个专为 Vue.js 应用程序开发的状态管理模式。
+- 每一个 Vuex 应用的核心就是 store（仓库）。“store” 基本上就是一个容器，它包含着你的应用中大部分的状态 ( state )。
+
+- Vuex 的状态存储是响应式的。当 Vue 组件从 store 中读取状态的时候，若 store 中的状态发生变化，那么相应的组件也会相应地得到高效更新。
+- 改变 store 中的状态的唯一途径就是显式地提交 (commit) mutation。这样使得我们可以方便地跟踪每一个状态的变化。
+
+
+
+Vuex采用MVC模式中的Model层，规定所有的数据必须通过action ---> mutaion ---> state这个流程进行来改变状态的。再结合Vue的数据视图双向绑定实现页面的更新。
+
+统一页面状态管理，可以让复杂的组件交互变的简单清晰，同时在调试时也可以通过devtools去查看状态。
+
+
+
+## use
+
+在`vue`中使用插件时，会调用`Vue.use(Vuex)`将插件进行处理，此过程会通过`mixin`在各个组件中的生命钩子`beforeCreate`中为每个实例增加`$store`属性
+
+![](https://user-gold-cdn.xitu.io/2019/2/28/1693337567150fac?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+### install
+
+在`vue`项目中，使用`vuex`进行数据管理，首先做的就是将`vuex`引入并`Vue.use(Vuex)`
+
+```javascript
+import Vue from 'vue'
+import Vuex from 'vuex'
+
+Vue.use(Vuex)
+```
+
+
+
+在执行`Vue.use(Vuex)`时，会触发`vuex`中暴露出来的方法`install`进行初始化，并且会将`Vue`作为形参传递。方法在`/src/store.js`中暴露
+
+> 所有的`vue`插件都会暴露一个`install`方法，**用于初始化一些操作**
+
+```javascript
+// vuex/src/store.js
+let Vue // bind on install
+
+export function install (_Vue) {
+  // 容错判断
+  if (Vue && _Vue === Vue) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(
+        '[vuex] already installed. Vue.use(Vuex) should be called only once.'
+      )
+    }
+    return
+  }
+  Vue = _Vue // 只初始化赋值一次--单例模式
+  applyMixin(Vue)
+}
+```
+
+首先会在`store`中定义一个变量`Vue`，用来接受`Vue`实例。
+
+`install`函数中，首先会判断是否已经调用了`Vue.use(Vuex)`，然后调用`applyMixin`方法进行初始化的一些操作
+
+**总结**：
+
+`install`方法仅仅做了一个容错处理，然后调用`applyMixin`，`Vue`赋值。
+
+
+
+### applyMixin
+
+`applyMixin`方法在`/src/mixin`中暴露，该方法只做了一件事情，就是将所有的实例上挂载一个`$store`对象。
+
+```javascript
+// vuex/src/mixin
+export default function (Vue) {
+  // 获取当前的vue版本号
+  const version = Number(Vue.version.split('.')[0])
+
+  // 若是2以上的vue版本，直接通过mixin进行挂载$store
+  if (version >= 2) {
+    // 在每个实例beforeCreate的时候进行挂载$store
+    Vue.mixin({ beforeCreate: vuexInit })
+  } else {
+    // vue 1.x版本处理 省略...
+  }
+
+  function vuexInit () {
+    // 1. 获取每个组件实例的选项
+    const options = this.$options
+
+  // 2. 检测options.store是否存在
+    if (options.store) {
+      // 下面详细说明
+      this.$store = typeof options.store === 'function'
+        ? options.store()
+        : options.store
+    } else if (options.parent && options.parent.$store) {
+      // 检测当前组件实例的父组件是够存在，并且其父组件存在$store
+      // 存在，则为当前组件实例挂载$store属性
+      this.$store = options.parent.$store
+    }
+  }
+}
+```
+
+**难点**在于理解`this.$store = typeof options.store === 'function' ? options.store() : options.store`做了什么事
+
+
+
+在使用`vuex`的时候，会将`store`挂载在根组件之上
+
+```javascript
+import Vue from 'vue'
+import App from './App'
+import store from './store'
+
+new Vue({
+  el: '#app',
+  store,
+  render: h => h(App)
+})
+```
+
+在第一次调用`vuexInit`函数时，`options.store`就是根选项的`store`，因此会判断其类型是不是`function`，若是则执行函数并将结果赋值给根实例的`$store`中，否则直接赋值。
+
+
+
+**总结**：
+
+整个`mixin`文件做的事情，就是利用`mixin`在各个实例的生命钩子`beforeCreate`中为其增加属性`$store`并为其赋值，保证在每个实例中都可以直接通过`this.$store`获取数据和行为。
+
+
+
+## Module
+
+`module`模块主要的功能：是将我们定义的`store`根据一定的规则转化为一颗树形结构，在实例化`Store`的时候执行，会将其得到的树形结构赋值给`this._modules`，后续会基于这颗树进行操作。
+
+
+
+### 树形结构
+
+首先，在`vuex`中定义一些状态和模块，观察其转化的树形结构
+
+```javascript
+const state = {
+  count: 0
+}
+
+const getters = {
+}
+
+const mutations = {
+}
+
+const actions = {
+}
+
+const modules = {
+  moduleA:{
+    state: {
+      a: 'module a'
+    },
+    modules: {
+      moduleB:{
+        state: {
+          b: 'module b'
+        }
+      }
+    }
+  },
+  moduleC: {
+    state: {
+      c: 'module c'
+    }
+  }
+}
+
+export default new Vuex.Store({
+  modules,
+  state,
+  getters,
+  actions,
+  mutations
+})
+```
+
+`vuex`在获取到定义的状态和模块，会将其格式化成一个树形结构，后续的很多操作都是基于这颗树形结构进行操作和处理，可以在任意一个使用的组件中打印`this.$store._modules.root`观察其结构
+
+![](https://user-gold-cdn.xitu.io/2020/3/4/170a44320c45dd34?imageslim)
+
+
+
+格式化之后的树形结构，每一层级都会包含`state`、`_rawModule`、`_children`三个主要属性
+
+树形节点结构
+
+```javascript
+{
+  state:{},
+  _rawModule:{},
+  _children: {}
+}
+```
+
+
+
+#### state
+
+根模块会将自身还有其包含的全部子模块`state`数据按照模块的层级按照树级结构放置，根模块的`state`会包含自身以及所有的子模块数据，子模块的`state`会包含自身以及其子模块的数据。
+
+```javascript
+{
+  state: {
+  count: 0,
+    moduleA: {
+      a: 'module a',
+        moduleB: {
+          b: 'module b'
+        }
+    },
+    moduleC: {
+      c: 'module c'
+    }
+  }
+}
+```
+
+
+
+#### _rawModule
+
+每一层树形结构都会包含一个`_rawModule`节点，就是在调用`store`初始化的时候传入的`options`，根上的`_rawModule`就是初始化时的所有选项，子模块上就是各自初始化时使用的`options`。
+
+```javascript
+{
+  modules:{},
+  state:{},
+  getters:{},
+  actions:{},
+  mutations:{}
+}
+```
+
+
+
+#### _children
+
+`_children`会将当前模块以及其子模块按照约定的树形结构进行格式化，放在其父或者跟组件的`_children`中，键名就是其模块名。
+
+```javascript
+{
+  moduleA:{
+    state: {},
+    _rawModule:{},
+    _children:{
+      moduleB:{
+        state: {},
+        _rawModule:{},
+        _children:{}
+      },
+    }
+  },
+  moduleC:{
+    state: {},
+    _rawModule:{},
+    _children:{}
+  }
+}
+```
+
+
+
+**总结**：
+
+根据调用`store`初始化时传入的参数，在其内部将其转化为一个树形结构，可以通过`this.$store._modules.root`查看
+
+
+
+### 转化
+
+知道了转化处理之后的树形结构，接下来看看`vuex`中是如何通过代码处理的。
+
+在`src/module`文件夹中，存在`module-collection.js`和`module.js`两个文件，主要通过`ModuleCollection`和`Module`两个类进行模块收集。
+
+
+
+#### Module
+
+`Module`的主要作用就是根据设计好的树形节点结构生成对应的节点结构，实例化之后会生成一个基础的数据结构，并在其原型上定一些操作方法供实例调用。
+
+```javascript
+// vuex/src/module/module.js 
+import { forEachValue } from '../util'
+
+export default class Module {
+  constructor (rawModule, runtime) {
+    // 是否为运行时 默认为true
+    this.runtime = runtime
+    // _children 初始化是一个空对象
+    this._children = Object.create(null)
+    // 将初始化vuex的时候 传递的参数放入_rawModule
+    this._rawModule = rawModule
+    // 将初始化vuex的时候 传递的参数的state属性放入state
+    const rawState = rawModule.state
+    this.state = (typeof rawState === 'function' ? rawState() : rawState) || {}
+  }
+
+  // _children 初始化是一个空对象，为其增加子模块
+  addChild (key, module) {
+    this._children[key] = module
+  }
+  
+  // 根据 key，获取对应的模块
+  getChild (key) {
+    return this._children[key]
+  }
+}
+```
+
+
+
+#### ModuleCollection
+
+结合`Module`用来生成树形结构
+
+```javascript
+// src/module/module-collection.js
+import Module from './module'
+import { forEachValue } from '../util'
+
+export default class ModuleCollection {
+  constructor (rawRootModule) {
+    // 根据options 注册模块
+    this.register([], rawRootModule, false)
+  }
+ 
+  // 利用 reduce，根据 path 找到此时子模块对应的父模块
+  get (path) {
+    return path.reduce((module, key) => {
+      return module.getChild(key)
+    }, this.root)
+  }
+
+  register (path, rawModule, runtime = true) {
+    // 初始化一个节点
+    const newModule = new Module(rawModule, runtime)
+    
+    if (path.length === 0) { // 根节点， 此时 path 为 []
+      this.root = newModule
+    } else { // 子节点处理
+      // 1. 找到当前子节点对应的父
+      // path ==> [moduleA, moduleC]
+      // path.slice(0, -1) ==> [moduleA]
+      // get ==> 获取到moduleA
+      const parent = this.get(path.slice(0, -1))
+      // 2. 调用 Module 的 addChild 方法，为其 _children 增加节点
+      parent.addChild(path[path.length - 1], newModule)
+    }
+
+    // 若是存在子模块，则会遍历递归调用 register
+    if (rawModule.modules) {
+      forEachValue(rawModule.modules, (rawChildModule, key) => {
+        this.register(path.concat(key), rawChildModule, runtime)
+      })
+    }
+  }
+}
+```
+
+1. 初始化`ModuleCollection`时传递的实参为`new Vuex.Store({....options})`中的`options`，此时的`rawRootModule`就是`options`，接下来的操作都是基于`rawRootModule`进行
+
+   `options`的数据结构简写
+
+   ```javascript
+   {
+     modules: {
+       moduleA:{
+         modules: {
+           moduleB:{
+           }
+         }
+       },
+       moduleC: {
+       }
+     }
+   }
+   ```
+
+2. 执行`this.register([], rawRootModule, false)`
+
+   `[]`对应形参`path`，保存的是当前模块的层级路径，例如`moduleB`对应的路径`["moduleA", "moduleB"]`
+
+   `rawRootModule`对应形参`rawModule`，代表在初始化参数`options`中对应的数据，例如`moduleA`对应的`rawModule`为：
+
+   ```javascript
+   moduleA:{
+     state: {
+       a: 'module a'
+     },
+     mutations:{
+       incrementA: ({ commit }) => commit('increment'),
+       decrementA: ({ commit }) => commit('decrement'),
+     },
+     modules: {
+       moduleB:{
+         state: {
+           b: 'module b'
+         }
+       }
+     }
+   }
+   ```
+
+3. 每次执行`register`时都会实例化`Module`，生成一个树形的节点`newModule`，之后便是通过判断`path`的长度来决定`newModule`放置的位置，第一次执行`register`时`path`为`[]`，则直接将`newModule`赋值给`this.root`，其余情况，便是通过`path`找到当前节点对应的父节点并将其放置在`_children`中
+
+4. 判断`rawModule.modules`是否存在，若是存在子模块，便遍历`rawModule.modules`进行递归调用`register`进行递归处理，最终会生成一个期望的树形结构。
+
+
+
+## Store
+
+
+
+
+
+#### 什么情况下使用 Vuex？
+
+- 如果应用够简单，最好不要使用 Vuex，一个简单的 store 模式即可
+- 需要构建一个中大型单页应用时，使用Vuex能更好地在组件外部管理状态
+
+
+
+#### Vuex和单纯的全局对象有什么区别？
+
+- Vuex 的状态存储是响应式的。当 Vue 组件从 store 中读取状态的时候，若 store 中的状态发生变化，那么相应的组件也会相应地得到高效更新。
+- 不能直接改变 store 中的状态。改变 store 中的状态的唯一途径就是显式地提交 (commit) mutation。这样使得我们可以方便地跟踪每一个状态的变化，从而让我们能够实现一些工具帮助我们更好地了解我们的应用。
+
+
+
+#### 为什么 Vuex 的 mutation 中不能做异步操作？
+
+- Vuex中所有的状态更新的唯一途径都是mutation，异步操作通过 Action 来提交 mutation实现，这样使得我们可以方便地跟踪每一个状态的变化，从而让我们能够实现一些工具帮助我们更好地了解我们的应用。
+- 每个mutation执行完成后都会对应到一个新的状态变更，这样devtools就可以打个快照存下来，然后就可以实现 time-travel 了。如果mutation支持异步操作，就没有办法知道状态是何时更新的，无法很好的进行状态的追踪，给调试带来困难。
+
+
+
+#### vuex的action有返回值吗？返回的是什么？
+
+- store.dispatch 可以处理被触发的 action 的处理函数返回的 Promise，并且 store.dispatch 仍旧返回 Promise
+- Action 通常是异步的，要知道 action 什么时候结束或者组合多个 action以处理更加复杂的异步流程，可以通过定义action时返回一个promise对象，就可以在派发action的时候就可以通过处理返回的 Promise处理异步流程
+
+> 一个 store.dispatch 在不同模块中可以触发多个 action 函数。在这种情况下，只有当所有触发函数完成后，返回的 Promise 才会执行。
+
+
+
+#### 为什么不直接分发mutation,而要通过分发action之后提交 mutation变更状态
+
+- mutation 必须同步执行，我们可以在 action 内部执行异步操作
+- 可以进行一系列的异步操作，并且通过提交 mutation 来记录 action 产生的副作用（即状态变更）
