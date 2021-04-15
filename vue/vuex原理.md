@@ -2,6 +2,8 @@
 
 > 参考
 >
+> [Vuex源码](https://github.com/vuejs/vuex)
+>
 > 《了解VUEX原理》作者：Nordon [掘金](https://juejin.cn/post/6844904081119510536)
 >
 > 《Vue最全知识点，面试必备》作者：阿李卑斯[掘金](https://juejin.cn/post/6844903709055401991)
@@ -431,9 +433,365 @@ export default class ModuleCollection {
 
 ## Store
 
+在`store`中会对定义的`state`，`mutations`，`actions`，`getters`等进行处理。
+
+首先看看`Store`的整体结构
+
+```javascript
+class Store {
+  constructor (options = {}) {}
+
+  get state () {}
+
+  set state (v) {}
+
+  commit (_type, _payload, _options) {}
+
+  dispatch (_type, _payload) {}
+
+  subscribe (fn) {}
+
+  subscribeAction (fn) {}
+
+  watch (getter, cb, options) {}
+
+  replaceState (state) {}
+
+  registerModule (path, rawModule, options = {}) {}
+
+  unregisterModule (path) {}
+
+  hotUpdate (newOptions) {}
+
+  _withCommit (fn) {}
+}
+```
+
+在使用`vuex`中，会看到常用的方法和属性都定义在`store`类中，接下来通过完善类中的内容逐步的实现主要功能。
 
 
 
+### State
+
+在模块中定义的`state`通过`vux`之后处理之后，便可以在`vue`中通过`$store.state.xxx`使用，且当数据变化时会驱动视图更新。
+
+首先会在`store`中进行初始化
+
+```javascript
+class Store {
+  constructor(options) {
+    // 定义一些内部的状态  ....
+    this._modules = new ModuleCollection(options)
+    const state = this._modules.root.state
+    // 初始化根模块，会递归注册所有的子模块
+    installModule(this, state, [], this._modules.root)
+    // 初始化 store、vm
+    resetStoreVM(this, state)
+  }
+
+  // 利用类的取值函数定义state，其实取的值是内部的_vm上的数据，代理模式
+  get state() {
+    return this._vm._data.$state
+  }
+
+  _withCommit (fn) {
+    fn()
+  }
+}
+```
+
+首先会执行`installModule`，递归调用，会将所有的子模块的数据进行注册，函数内部会进行递归调用自身进行对子模块的属性进行便利，最终会将所有子模块的模块名作为键，模块的`state`作为对应的值，模块的嵌套层级进行嵌套，最终生成所期望的数据嵌套结构。
+
+```javascript
+{
+  count: 0,
+  moduleA: {
+    a: "module a",
+    moduleB: {
+      b: "module b"
+    }
+  },
+  moduleC: {
+    c: "module c"
+  }
+}
+```
+
+
+
+`installModule`关于处理`state`的核心代码如下
+
+```javascript
+/**
+ * @param {*} store 整个store
+ * @param {*} rootState 当前的根状态
+ * @param {*} path 为了递归使用的，路径的一个数组
+ * @param {*} module 从根模块开始安装
+ * @param {*} hot 
+ */
+function installModule (store, rootState, path, module, hot) {
+  const isRoot = !path.length // 是不是根节点
+
+  // 设置 state
+  // 非根节点的时候 进入，
+  if (!isRoot && !hot) {
+    // 1. 获取到当前模块的父模块
+    const parentState = getNestedState(rootState, path.slice(0, -1))
+    // 2. 获取当前模块的模块名
+    const moduleName = path[path.length - 1]
+    // 3. 调用 _withCommit ，执行回调
+    store._withCommit(() => {
+      // 4. 利用Vue的特性，使用 Vue.set使刚设置的键值也具备响应式，否则Vue监控不到变化
+      Vue.set(parentState, moduleName, module.state)
+    })
+  }
+
+  // 递归处理子模块的state
+  module.forEachChild((child, key) => {
+    installModule(store, rootState, path.concat(key), child, hot)
+  })
+}
+```
+
+将`state`处理成期望的结构之后，会结合`resetStoreVM`对`state`进行处理，若是直接在`Store`中定义变量`state`，外面可以获取到，但是当修改了之后并不能利用的`vue`的数据绑定驱动视图的更新。所以利用`vue`的特性，将`vue`的实例放置在`_vm`上，然后利用类的取值函数获取。
+
+当使用`$store.state.count`的时候，会先根据类的取值函数`get state`进行取值，取值函数内部返回的就是`resetStoreVM`所赋值`_vm`，结合`vue`进行响应适处理。
+
+```javascript
+function resetStoreVM(store, state) {
+  store._vm = new Vue({
+    data: {
+      $state: state
+    }
+  })
+}
+```
+
+
+
+### Mutations
+
+在`vuex`中，对于同步修改数据状态时，推荐使用`mutations`进行修改，不推荐直接使用`this.$store.state.xxx = xxx`进行修改，可以开启严格模式`strict: true`进行处理。
+
+`vuex`对于`mutations`的处理，分为两部分，第一步是在`installModule`时将所有模块的`mutations`收集订阅，第二步在`Store`暴露`commit`方法发布执行所对应的方法。
+
+
+
+#### 订阅
+
+首先在`Store`中处理增加一个`_mutations`属性
+
+```javascript
+constructor(options){
+ // 创建一个_mutations 空对象，用于收集各个模块中的 mutations
+ this._mutations = Object.create(null)
+}
+```
+
+在`installModule`中递归调用地处理所有的`mutations`
+
+```javascript
+const local = module.context = makeLocalContext(store, '', path)
+// 处理 mutations
+module.forEachMutation((mutation, key) => {
+  registerMutation(store, key, mutation, local)
+})
+```
+
+在`registerMutation`函数中进行对应的`nutations`收集
+
+```javascript
+// 注册 mutations 的处理 -- 订阅
+function registerMutation (store, type, handler, local) {
+  const entry = store._mutations[type] || (store._mutations[type] = [])
+  entry.push(function wrappedMutationHandler (payload) {
+    handler.call(store, local.state, payload)
+  })
+}
+```
+
+此时所有模块的`mutations`都会被订阅在`_mutations`中，只需要在调用执行时找到对应的`mutations`进行遍历执行，这里使用一个数组收集订阅，因为在`vuex`中，定义在不同模块中的同名`mutations`都会被依次执行，所以需要使用数组订阅，并遍历调用，因此也建议在使用`vuex`的时候，若项目具有一定的复杂度和体量，建议使用命名空间`namespaced: true`，可以减少不必要的重名`mutations`全部被执行，导致不可控的问题出现。
+
+
+
+`makeLocalContext`函数将`vuex`的选项进行处理，省略开启命名空间的代码，主要是将`getters` 和 `state`进行劫持处理。
+
+```javascript
+function makeLocalContext (store, namespace, path) {
+  const local = {
+    dispatch: store.dispatch,
+    commit: store.commit
+  }
+
+  // getters 和 state 必须是懒获取，因为他们的修改会通过vue实例的更新而变化
+  Object.defineProperties(local, {
+    getters: {
+      get: () => store.getters
+    },
+    state: {
+      get: () => getNestedState(store.state, path)
+    }
+  })
+
+  return local
+}
+```
+
+
+
+#### 发布
+
+收集订阅完成之后，需要`Store`暴露一个方法用于触发发布，执行相关的函数修改数据状态。
+
+首先在`Store`类上定义一个`commit`方法
+
+```javascript
+{
+  // 触发 mutations
+  commit (_type, _payload, _options) {
+    // 1. 区分不同的调用方式 进行统一处理
+    const {
+      type,
+      payload,
+      options
+    } = unifyObjectStyle(_type, _payload, _options)
+
+    // 2. 获取到对应type的mutation方法，便利调用
+    const entry = this._mutations[type]
+    this._withCommit(() => {
+      entry.forEach(function commitIterator (handler) {
+        handler(payload)
+      })
+    })
+  }
+}
+```
+
+但是在源码中，外界调用时并不是直接调用类上的`commit`方法，而是在构造`constructor`中重写的`commit`
+
+```javascript
+constructor(options){
+ // 1. 获取 commit 方法
+  const { commit } = this
+  // 2. 使用箭头函数和call 保证this的指向
+  this.commit = (type, payload, options) => {
+   return commit.call(this, type, payload, options)
+  }
+} 
+```
+
+`unifyObjectStyle`方法做了一个参数格式化的处理，调用 `mutations` 可以使用`this.$store.commit('increment', payload)`和`this.$store.commit({type: 'increment', payload})`两种方式，`unifyObjectStyle`函数就是为了将不同的参数格式化成一种情况，`actions`同理。
+
+```javascript
+function unifyObjectStyle (type, payload, options) {
+  if (isObject(type) && type.type) {
+    options = payload
+    payload = type
+    type = type.type
+  }
+
+  return { type, payload, options }
+}
+```
+
+
+
+### Actions
+
+`actions`用于处理异步数据改变，`mutations`用于处理同步数据改变。
+
+两者的区别主要在于是否是异步处理数据，因此两者在实现上具备很多的共通性，首先将所有的`actions`进行订阅收集，然后暴露方法发布执行。
+
+
+
+#### 订阅
+
+首先在`Store`中处理增加一个`_actions`属性
+
+```javascript
+constructor(options){
+ // 创建一个 _actions 空对象，用于收集各个模块中的 actions
+ this._actions = Object.create(null)
+}
+```
+
+在`installModule`中递归调用的处理所有的`actions`
+
+```javascript
+const local = module.context = makeLocalContext(store, '', path)
+// 处理actions
+module.forEachAction((action, key) => {
+ const type = action.root ? key : '' + key
+ const handler = action.handler || action
+ registerAction(store, type, handler, local)
+})
+```
+
+在`registerAction`函数中进行对应的`actions`收集
+
+```javascript
+// 注册 actions 的处理
+function registerAction (store, type, handler, local) {
+  const entry = store._actions[type] || (store._actions[type] = [])
+  // actions 和 mutations 在执行时，第一个参数接受到的不一样 
+  entry.push(function wrappedActionHandler (payload) {
+    let res = handler.call(store, {
+      dispatch: local.dispatch,
+      commit: local.commit,
+      getters: local.getters,
+      state: local.state,
+      rootGetters: store.getters,
+      rootState: store.state
+    }, payload)
+    
+    // 判断是否时Promise
+    if (!isPromise(res)) {
+      res = Promise.resolve(res)
+    }
+    
+    return res
+  })
+}
+```
+
+
+
+#### 发布
+
+`actions`的发布执行，和`mutations`处理方式一致，区别在于`dispatch`方法需要多做一些处理
+
+```javascript
+// 触发 actipns
+dispatch (_type, _payload) {
+  // check object-style dispatch
+  const {
+    type,
+    payload
+  } = unifyObjectStyle(_type, _payload)
+
+  const action = { type, payload }
+  const entry = this._actions[type]
+
+ // 若是多个，则使用Promise.all()，否则执行一次
+  const result = entry.length > 1
+    ? Promise.all(entry.map(handler => handler(payload)))
+    : entry[0](payload)
+ 
+  // 拿到执行结果 进行判断处理
+  return result.then(res => {
+    try {
+      this._actionSubscribers
+        .filter(sub => sub.after)
+        .forEach(sub => sub.after(action, this.state))
+    } catch (e) {}
+    return res
+  })
+}
+```
+
+
+
+## 其他
 
 #### 什么情况下使用 Vuex？
 
