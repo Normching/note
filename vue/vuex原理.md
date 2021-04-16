@@ -147,7 +147,7 @@ new Vue({
 
 ## Module
 
-`module`模块主要的功能：是将我们定义的`store`根据一定的规则转化为一颗树形结构，在实例化`Store`的时候执行，会将其得到的树形结构赋值给`this._modules`，后续会基于这颗树进行操作。
+`module`模块主要的功能：是将我们定义的`store`根据一定的规则转化为树形结构，在实例化`Store`的时候执行，会将其得到的树形结构赋值给`this._modules`，后续会基于这颗树进行操作。
 
 
 
@@ -541,7 +541,7 @@ function installModule (store, rootState, path, module, hot) {
     const moduleName = path[path.length - 1]
     // 3. 调用 _withCommit ，执行回调
     store._withCommit(() => {
-      // 4. 利用Vue的特性，使用 Vue.set使刚设置的键值也具备响应式，否则Vue监控不到变化
+      // 4. 利用Vue的特性，使用 Vue.set 使刚设置的键值也具备响应式，否则Vue监控不到变化
       Vue.set(parentState, moduleName, module.state)
     })
   }
@@ -788,6 +788,20 @@ dispatch (_type, _payload) {
   })
 }
 ```
+
+
+
+## 总结
+
+1. 在`vue`中使用插件时，会调用`Vue.use(Vuex)`将插件进行处理，此过程会通过`mixin`在各个组件中的生命钩子`beforeCreate`中为每个实例增加`$store`属性，保证在每个实例中都可以直接通过`this.$store`获取数据和行为。
+
+2. 实例化Store时`new Vuex.Store(options)`传入的参数`options`，在其内部将转化为一个树形结构，并赋值给`_module`。实例化之后，根据树形结构生成一个基础的数据类型，并在其原型上设定一些操作方法以供实例调用。
+
+3. 将state处理成期望的结构之后，利用vue的特性，使用`Vue.set`，将vue的实例放置在`_vm`上。当使用`$store.state.xxx`时会先根据类的取值函数`get state`进行取值，取值函数内部返回的就是`resetStoreVM`所赋值`_vm`，结合`vue`进行响应适处理。
+
+4. `Mutation`在`installModule`时将所有模块的`mutation`收集订阅，在`Store`暴露`commit`方法发布执行所对应的方法。
+
+5. `Actions`同理将所有`actions`进行订阅收集，然后暴露`dispatch`方法发布执行，`dispatch`方法需要多一些处理，返回一个`promise`。
 
 
 
