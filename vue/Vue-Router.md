@@ -2,6 +2,123 @@
 
 
 
+## vue-router的两种模式
+
+### Hash模式
+
+vue-router默认使用Hash模式。使用url的hash来模拟一个完整的url。
+
+此时url变化时，浏览器是不会重新加载的。
+
+Hash 模式是基于锚点以及 `onhashchange` 事件。
+
+**Hash(即`#`)是url的锚点，代表的是网页中的一个位置，仅仅改变#后面部分，浏览器只会滚动对应的位置，而不会重新加载页面。**
+
+`#`仅仅只是对浏览器进行指导，而对服务端是完全没有作用的！它不会被包括在http请求中，故也不会重新加载页面。
+
+同时**hash发生变化时，url都会被浏览器记录下来，这样就可以使用浏览器的后退了。**
+
+**总而言之：Hash模式就是通过改变`#`后面的值,实现浏览器渲染指定的组件。**
+
+
+
+#### Hash模式实现原理
+
+- URL 中`#`后面的内容作为路径地址
+- 监听 `hashchange` 事件
+- 根据当前路由地址找到对应组件重新渲染
+
+
+
+### History模式
+
+该模式利用了HTML5 History新增的 `pushState()` 和 `replaceState()` 方法。
+
+>  除了之前的`back`，`forward`，`go`方法，这两个新方法可以应用在浏览器历史记录的增加替换功能上。
+
+使用History模式，通过历史记录修改url，但它不会立即向后端发送请求。
+
+
+
+ **`注意点:`** 虽然History模式可以丢掉不美观的`#`，也可以正常的前进后退。但是刷新f5后，此时浏览器就会访问服务器，在没有后台支持的情况下，此时就会得到一个404！
+
+> 官方文档给出的描述是：“不过这种模式要玩好，还需要后台配置支持。因为我们的应用是单个客户端应用，如果后台没有正确的配置，当用户直接访问时，就会返回404。所以呢，你要在服务端增加一个覆盖所有情况的的候选资源；
+>
+> 如果url匹配不到任何静态资源，则应该返回同一个`index.html`页面。“
+
+**总而言之：History模式就是通过 `pushState()` 方法来对浏览器的浏览记录进行修改，来达到不用请求后端来渲染的效果。不过建议，实际项目还是使用history模式。**
+
+
+
+#### History模式实现原理
+
+- 通过 `history.pushState()` 方法改变地址栏
+- 监听 `popstate` 事件
+- 根据当前路由地址找到对应组件重新渲染
+
+
+
+### 区别
+
+- Hash 模式是基于锚点以及 onhashchange 事件。
+
+- History 模式是基于 HTML5 中的 History API。history 对象具有 pushState 和 replaceState 两个方法。但是需要注意 pushState 方法需要 IE10 以后才可以支持。在 IE10 之前的浏览器，只能使用 Hash 模式。
+
+- history 对象还有一个 push 方法，可以改变导航栏的地址，并向服务器发送请求。pushState 方法可以只改变导航栏地址，而不向服务器发送请求。
+
+
+
+### 服务器配置
+
+History 需要服务器的支持。
+
+原因是单页面应用中，只有一个 index.html。而在单页面应用正常通过点击进入 http://localhost:8080/login 不会有问题。但是当刷新浏览器时，就会请求服务器，而服务器上不存在这个 URL 对应的资源，就会返回 404。
+
+所以在服务器上应该配置除了静态资源以外的所有请求都返回 index.html。
+
+
+
+在 routes 中添加 404 的路由。
+
+```javascript
+const routes = [
+  // other code
+  {
+    path: "*",
+    name: "404",
+    component: () => import("../views/404.vue"),
+  },
+];
+```
+
+
+
+##### nginx 服务器配置
+
+nginx 的默认配置在 conf/nginx.conf 中。
+
+在 nginx.conf 中找到监听 80 的那个 server 模块，在从中找到 location /的位置。
+
+添加 try_files 配置。
+
+```nginx
+location / {
+  root   html;
+  index  index.html index.htm;
+  # $uri 是 nginx 的变量，就是当前这次请求的路径
+  # try files 会尝试在这个路径下寻找资源，如果找不到，会继续朝下一个寻找
+  # $uri/ 的意思是在路径目录下寻找 index.html 或 index.htm
+  # 最后都找不到的话，返回 index.html
+  try_files $uri $uri/ /index.html;
+}
+```
+
+
+
+
+
+
+
 ## 导航守卫
 
 `vue-router` 提供的导航守卫主要用来通过跳转或取消的方式守卫导航。有多种机会植入路由导航过程中：全局的, 单个路由独享的, 或者组件级的。

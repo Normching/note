@@ -76,7 +76,7 @@
 
 
 ## 为什么`Vue`采用异步渲染？
-`Vue`是组件级更新，如果不采用异步更新，那么每次更新数据都会对当前组件进行重新渲染，所以为了性能，`Vue`会在本轮数据更新后，再异步更新视图。核心思想`nextTick`。`dep.notify()`通知`watcher`进行更新，`ubs[i].update`依次调用`watcher`的`update`，`queueWatcher`将`watch`去重放入队列，`nextTick`（`flushSchedulerQueue`）在下一`tick`中刷新`watcher`队列并执行（异步）。
+`Vue`是组件级更新，如果不采用异步更新，那么每次更新数据都会对当前组件进行重新渲染，所以为了性能，`Vue`会在本轮数据更新后，再异步更新视图。核心思想`nextTick`。`dep.notify()`通知`watcher`进行更新，`subs[i].update`依次调用`watcher`的`update`，`queueWatcher`将`watch`去重放入队列，`nextTick`（`flushSchedulerQueue`）在下一`tick`中刷新`watcher`队列并执行（异步）。
 
 
 ## `nextTick`实现原理是什么？

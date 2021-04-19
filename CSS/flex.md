@@ -239,11 +239,11 @@ flex-grow 属性决定了子容器要占用父容器多少剩余空间。计算�
 
 
 
-### flex-basis
+### flex-basis 
 
 定义了在分配多余空间之前，项目占据的主轴空间（main size）。浏览器根据这个属性，计算主轴是否有多余空间。它的默认值为`auto`，即项目的本来大小。
 
-**`flex-basis` 会代替 flex item在主轴（main axis）方向上的尺寸属性（width/height），并在分配剩余空间（free space）之前初始化 flex item的主轴尺寸。**
+**`flex-basis` 会代替 flex item在主轴（main axis）方向上的尺寸属性（width/height，flex-basis优先级更高），并在分配剩余空间（free space）之前初始化 flex item的主轴尺寸。**
 
 ```css
 .item {
