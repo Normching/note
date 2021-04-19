@@ -55,7 +55,7 @@ Webpack的运行流程是一个串行的过程，从启动到结束会依次执�
 
 `Loader`在`module.rules`中配置，作为模板的解析规则，类型为数组。每一项都是一个Object，内部包含了`test`（类型文件）、`loader`、`options`（参数）等属性。
 
-`Plugin`在plugins中单独配置，类型为数组，每一项都是一个人Plugin的实例，参数都通过构造函数传入。
+`Plugin`在plugins中单独配置，类型为数组，每一项都是一个Plugin的实例，参数都通过构造函数传入。
 
 如果说Loader负责文件转换，那么Plugin便是负责功能扩展。
 
@@ -70,7 +70,7 @@ Loader 支持链式调用，所以开发上需要严格遵循“单一职责”�
 [Loader API](https://www.webpackjs.com/api/loaders/)
 
 - Loader函数中的`this`上下文由webpack提供，可以通过`this`对象提供的相关属性，获取当前`loader`需要的各种信息数据。事实上，这个`this`指向了一个叫`loaderContext`的`loader-runner`特有对象。
-- `Loader 运行在 Node.js 中，可以调用任意 Node.js 自带的 API 或者安装第三方模块进行调用
+- Loader 运行在 Node.js 中，可以调用任意 Node.js 自带的 API 或者安装第三方模块进行调用
 - Webpack 传给 Loader 的原内容都是 UTF-8 格式编码的字符串，在某些场景下 Loader 处理二进制文件时，需要通过 `exports.raw = true` 告诉 Webpack 该 Loader 是否需要二进制数据
 - 尽可能的异步化 Loader ，如果计算量很小，同步也可以
 - Loader 是无状态的， 不应该在 Loader 中保留状态
