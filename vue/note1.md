@@ -76,15 +76,21 @@
 
 
 ## 为什么`Vue`采用异步渲染？
-`Vue`是组件级更新，如果不采用异步更新，那么每次更新数据都会对当前组件进行重新渲染，所以为了性能，`Vue`会在本轮数据更新后，再异步更新视图。核心思想`nextTick`。`dep.notify()`通知`watcher`进行更新，`subs[i].update`依次调用`watcher`的`update`，`queueWatcher`将`watch`去重放入队列，`nextTick`（`flushSchedulerQueue`）在下一`tick`中刷新`watcher`队列并执行（异步）。
+`Vue`是组件级更新，如果不采用异步更新，那么每次更新数据都会对当前组件进行重新渲染，所以为了性能，`Vue`会在本轮数据更新后，再异步更新视图。核心思想`nextTick`。
+
+**详见《nextTick》**
+
+~~`dep.notify()`通知`watcher`进行更新，`subs[i].update`依次调用`watcher`的`update`，`queueWatcher`将`watch`去重放入队列，`nextTick`（`flushSchedulerQueue`）在下一`tick`中刷新`watcher`队列并执行（异步）。~~
 
 
 ## `nextTick`实现原理是什么？
+**详见《nextTick》**
+
 在下次`DOM`更新循环结束之后执行延迟回调。`nextTick`主要使用了宏任务和微任务。
 根据执行环境分别尝试采用
 
 - `Promise` (微任务)
-- `MutationObserver` (微任务)
+- `MutationObserver` (微任务) 
 - `setImmediate` (宏任务)
 - 如果以上都不行则采用`setTimeout` (宏任务)
 
@@ -215,6 +221,8 @@
 > 需要在新旧`children`的节点中保存映射关系，以便能够在旧`children`的节点中找到可复用的节点。`key`也就是`children`中节点的唯一标识。
 
 ## 15.`keep-alive`
+**详见《nextTick》**
+
 `keep-alive`可以实现组件缓存，当组件切换时不会对当前组件进行卸载。
 
 常用的两个属性`include/exclude`，允许组件有条件的进行缓存。
