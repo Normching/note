@@ -15,8 +15,7 @@ let pending = false
  *   1、用 try catch 包装 flushSchedulerQueue 函数，然后将其放入 callbacks 数组
  *   2、如果 pending 为 false，表示现在浏览器的任务队列中没有 flushCallbacks 函数
  *     如果 pending 为 true，则表示浏览器的任务队列中已经被放入了 flushCallbacks 函数，
- *     待执行 flushCallbacks 函数时，pending 会被再次置为 false，表示下一个 flushCallbacks 函数可以进入
- *     浏览器的任务队列了
+ *     待执行 flushCallbacks 函数时，pending 会被再次置为 false，表示下一个 flushCallbacks 函数可以进入浏览器的任务队列了
  * pending 的作用：保证在同一时刻，浏览器的任务队列中只有一个 flushCallbacks 函数
  * @param {*} cb 接收一个回调函数 => flushSchedulerQueue
  * @param {*} ctx 上下文
@@ -464,9 +463,9 @@ run () {
 **Vue 的异步更新机制是如何实现的？**
 
 1. Vue 的异步更新机制的核心是利用了浏览器的异步任务队列来实现的，首选微任务队列，宏任务队列次之。
-2. 当响应式数据更新后，会调用 dep.notify 方法，通知 dep 中收集的 watcher 去执行 update 方法，watcher.update 将 watcher 自己放入一个 watcher 队列（全局的 queue 数组）。
-3. 然后通过 nextTick 方法将一个刷新 watcher 队列的方法（flushSchedulerQueue）放入一个全局的 callbacks 数组中。
-4. 如果此时浏览器的异步任务队列中没有一个叫 flushCallbacks 的函数，则执行 timerFunc 函数，将 flushCallbacks 函数放入异步任务队列。如果异步任务队列中已经存在 flushCallbacks 函数，等待其执行完成以后再放入下一个 flushCallbacks 函数。
-5. flushCallbacks 函数负责执行 callbacks 数组中的所有 flushSchedulerQueue 函数。
-6. flushSchedulerQueue 函数负责刷新 watcher 队列，即执行 queue 数组中每一个 watcher 的 run 方法，从而进入更新阶段，比如执行组件更新函数或者执行用户 watch 的回调函数。
+2. 当响应式数据更新后，会调用 `dep.notify` 方法，通知 `dep` 中收集的 `watcher` 去执行 `update` 方法，`watcher.update` 将 `watcher` 自己放入一个 `watcher` 队列（全局的 `queue` 数组）。
+3. 然后通过 `nextTick` 方法将一个刷新 `watcher` 队列的方法（`flushSchedulerQueue`）放入一个全局的 `callbacks` 数组中。
+4. 如果此时浏览器的异步任务队列中没有一个叫 `flushCallbacks` 的函数，则执行 `timerFunc` 函数，将 `flushCallbacks` 函数放入异步任务队列。如果异步任务队列中已经存在 `flushCallbacks` 函数，等待其执行完成以后再放入下一个 `flushCallbacks` 函数。
+5. `flushCallbacks` 函数负责执行 `callbacks` 数组中的所有 `flushSchedulerQueue` 函数。
+6. `flushSchedulerQueue` 函数负责刷新 `watcher` 队列，即执行 `queue` 数组中每一个 `watcher` 的 `run` 方法，从而进入更新阶段，比如执行组件更新函数或者执行用户 `watch` 的回调函数。
 

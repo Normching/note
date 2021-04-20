@@ -180,7 +180,7 @@
 - 比较都有子节点的情况（核心`diff`）
 - 递归比较子节点
 
-正常`Diff`两个树的时间复杂度是$O(n^3)$，但实际情况下很少会进行**跨层级的移动DOM**，所以`Vue`将`Diff`进行了优化，从$O(n^3) -> O(n)$，只有当新旧children都为多个子节点时才需要用核心的`Diff`算法进行同层级比较。
+正常`Diff`两个树的时间复杂度是$O(n^3)$，但实际情况下很少会进行**跨层级的移动DOM**，所以`Vue`将`Diff`进行了优化，从$O(n^3)$ -> $O(n)$，只有当新旧children都为多个子节点时才需要用核心的`Diff`算法进行同层级比较。
 
 `Vue2.x`的核心`Diff`算法采用了**双端比较**的算法，同时从新旧children的两端开始进行比较，借助key值找到可复用的节点，再进行相关操作。相比React的`Diff`算法，同样情况下可以减少移动节点次数，减少不必要的性能损耗，更加的优雅。
 
@@ -292,11 +292,11 @@
 还可以使用缓存（客户端缓存、服务端缓存）优化、服务端开启gzip压缩等。
 
 ## 20.`hash`路由和`history`路由实现原理
-`location.hash`的值实际就是URL中`#`后面的东西
+详细见《Vue-Router》
 
-> 待补充
+~~`location.hash`的值实际就是URL中`#`后面的东西~~
 
-`history`实际采用了`HTML5`中提供的`API`来实现的，主要有`history.pushState()`和`history.replaceState()`。
+~~`history`实际采用了`HTML5`中提供的`API`来实现的，主要有`history.pushState()`和`history.replaceState()`。~~
 
 ## 21.`v-html` 会导致哪些问题
 - `XSS`攻击

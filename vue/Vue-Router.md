@@ -60,11 +60,11 @@ Hash 模式是基于锚点以及 `onhashchange` 事件。
 
 ### 区别
 
-- Hash 模式是基于锚点以及 onhashchange 事件。
+- `Hash` 模式是基于锚点以及 `onhashchange` 事件。
 
-- History 模式是基于 HTML5 中的 History API。history 对象具有 pushState 和 replaceState 两个方法。但是需要注意 pushState 方法需要 IE10 以后才可以支持。在 IE10 之前的浏览器，只能使用 Hash 模式。
+- `History` 模式是基于 HTML5 中的 History API。`history` 对象具有 `pushState` 和 `replaceState` 两个方法。但是需要注意 `pushState` 方法需要 IE10 以后才可以支持。在 IE10 之前的浏览器，只能使用 `Hash` 模式。
 
-- history 对象还有一个 push 方法，可以改变导航栏的地址，并向服务器发送请求。pushState 方法可以只改变导航栏地址，而不向服务器发送请求。
+- `History` 对象还有一个 `push` 方法，可以改变导航栏的地址，并向服务器发送请求。`pushState` 方法可以只改变导航栏地址，而不向服务器发送请求。
 
 
 
@@ -129,21 +129,21 @@ location / {
 
 ### 全局守卫
 
-- router.beforeEach 全局前置守卫 进入路由之前
+- router.beforeEach **全局前置守卫** 进入路由之前。当一个导航触发时，全局前置守卫按照创建顺序调用。守卫是异步解析执行，此时导航在所有守卫 `resolve` 完之前一直处于 **等待中**。
 
-- router.beforeResolve 全局解析守卫(2.5.0+) 在beforeRouteEnter调用之后调用
+- router.beforeResolve **全局解析守卫**(2.5.0+) 在beforeRouteEnter调用之后调用
 
-- router.afterEach 全局后置钩子 进入路由之后
+- router.afterEach **全局后置钩子** 进入路由之后
 
 
 
-#### 参数
+#### 全局前置守卫 router.beforeEach 参数
 
-- **`to: Route`**: 即将要进入的目标 
+- **`to: Route`**: 即将要进入的目标（路由对象）
 
 - **`from: Route`**: 当前导航正要离开的路由
 
-- **`next: Function`**：这个参数是个函数，且**必须调用，否则不能进入路由**(页面空白)
+- **`next: Function`**：这个参数是个函数，且**必须调用，一定要调用该方法来 `resolve` 这个钩子，否则不能进入路由**(页面空白)
 
   - **`next()`**: 进行管道中的下一个钩子。如果全部钩子执行完了，则导航的状态就是 **confirmed** (确认的)。
 
@@ -151,11 +151,13 @@ location / {
 
   - **`next`** 跳转新路由，当前的导航被中断，重新开始一个新的导航。
 
-    > 可以跳转：next('path地址')或者next({path:''})或者next({name:''}) 
+    > 可以跳转：`next('path地址')` 或者 `next({path:''})` 或者 `next({name:''})` 
     >
-    > 且允许设置诸如 replace: true、name: 'home' 之类的选项  
+    > 且允许设置诸如 `replace: true` 、 `name: 'home'` 之类的选项  
     >
-    > 以及用在router-link或router.push的对象选项。
+    > 以及用在 `router-link` 或 `router.push` 的对象选项。
+    
+  - **`next(error)`**: (2.4.0+) 如果传入 `next` 的参数是一个 `Error` 实例，则导航会被终止且该错误会被传递给  `router.onError()` 注册过的回调。
 
 
 
@@ -207,7 +209,7 @@ const Foo = {
 }
 ```
 
-`beforeRouteEnter`访问`this`的方法
+**注意**：`beforeRouteEnter`访问`this`的方法
 
 因为钩子在组件实例还没被创建的时候调用，所以不能获取组件实例 `this`，可以通过传一个回调给`next`来访问组件实例 。
 
@@ -222,7 +224,7 @@ beforeRouteEnter (to, from, next) {
 }
 ```
 
-注意 `beforeRouteEnter` 是支持给 `next` 传递回调的**唯一**守卫。
+**注意** `beforeRouteEnter` 是支持给 `next` 传递回调的**唯一**守卫！
 
 对于 `beforeRouteUpdate` 和 `beforeRouteLeave` 来说，`this` 已经可用了，所以**不支持**传递回调，因为没有必要了。
 

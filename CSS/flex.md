@@ -207,7 +207,7 @@ flex-grow 属性决定了子容器要占用父容器多少剩余空间。计算�
 
 - 剩余空间：x
 - 假设有三个flex item元素，flex-grow 的值分别为a, b, c
-- 每个元素可以分配的剩余空间为： a/(a+b+c) * x，b/(a+b+c) * x，c/(a+b+c) * x
+- 每个元素可以分配的剩余空间为：$\frac{a}{a+b+c} * x$，$\frac{b}{a+b+c} * x$，$\frac{c}{a+b+c} * x$
 
 
 
@@ -231,11 +231,21 @@ flex-grow 属性决定了子容器要占用父容器多少剩余空间。计算�
 
 计算方式：
 
-- 三个flex item元素的width: w1, w2, w3
+- 三个flex item元素的width: $w_1$, $w_2$, $w_3$
+
 - 三个flex item元素的flex-shrink：a, b, c
-- 计算总压缩权重： sum = a * w1 + b * w2 + c * w3
-- 计算每个元素压缩率： S1 = a * w1 / sum，S2 =b * w2 / sum，S3 =c * w3 / sum
-- 计算每个元素宽度：width - 压缩率 * 溢出空间
+
+- 计算总压缩权重： $sum = a * w_1 + b * w_2 + c * w_3$
+
+- 计算每个元素压缩率： 
+
+$$
+S_1 = \frac{a * w_1}{sum}，
+S_2 = \frac{b * w_2}{sum}，
+S_3 = \frac{c * w_3}{sum}，
+$$
+
+- 计算每个元素宽度：$width - 压缩率 * 溢出空间$
 
 
 
