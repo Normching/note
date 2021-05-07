@@ -37,7 +37,7 @@ display: flex;
 
 - flex container 内部的元素会成为 **flex item**，包括内部的纯文本（会被包裹一个匿名块级盒子）。绝对定位元素因为不会参与到 *flex* 布局中来，所以不会成为一个 *flex item*。
 
-- 在进行 *flex layout* 时，`flex` 会生效，使 *flex item* 完全填充至 *flex container* 的可用空间，或者收缩 *flex item* 以阻止溢出。当所有的 *flex item* 确定了尺寸之后，就会根据 `justify-content`、`align-self` 等属性进行排列和布局。
+- 在进行 *flex layout* 时，`flex` 会生效，使 *flex item* 完全填充至 *flex container* 的可用空间，或者收缩 *flex item* 以阻止溢出。当所有的 *flex item* 确定了尺寸之后，就会根据 `justify-content`、`align-items` 等属性进行排列和布局。
 
 
 
