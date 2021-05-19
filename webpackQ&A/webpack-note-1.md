@@ -51,11 +51,11 @@ Webpack的运行流程是一个串行的过程，从启动到结束会依次执�
 ## Loader和Plugin的区别
 `Loader`本质就是一个函数，在该函数中对接收到的内容进行转换，返回转换后的结果。因为Webpack只认识JavaScript，所以Loader就成了翻译官，对其他类型的资源进行转译的预处理。
 
-`Plugin`就是插件，基于事件流框架`Tapable`，插件可以扩展Webpack的功能，在Webpack运行的生命周期中会广播出许多事件，Plugin可以监听这些事件，在合适的时机通过Webpack提供的API改变输出结果。
+`Plugin`就是插件，基于事件流框架`Tapable`，插件可以扩展Webpack的功能，在Webpack运行的生命周期中会广播出许多事件，`Plugin`可以监听这些事件，在合适的时机通过Webpack提供的`API`改变输出结果。
 
-`Loader`在`module.rules`中配置，作为模板的解析规则，类型为数组。每一项都是一个Object，内部包含了`test`（类型文件）、`loader`、`options`（参数）等属性。
+`Loader`在`module.rules`中配置，作为模板的解析规则，类型为数组。每一项都是一个**Object**，内部包含了`test`（类型文件）、`loader`、`options`（参数）等属性。 
 
-`Plugin`在plugins中单独配置，类型为数组，每一项都是一个Plugin的实例，参数都通过构造函数传入。
+`Plugin`在`plugins`中单独配置，类型为数组，每一项都是一个`Plugin`的**实例**，参数都通过构造函数传入。
 
 如果说Loader负责文件转换，那么Plugin便是负责功能扩展。
 
@@ -232,7 +232,11 @@ module.export = {
 
 `Webpack`的热更新又称热替换（`Hot Module Replacement`），缩写`HMR`。这个机制可以做到不用刷新浏览器而将新变更的模块替换掉旧的模块。
 
-HMR的核心就是客户端从服务端拉取更新后的文件，准确的说是 chunk diff（chunk需要更新的部分），实际上WDS与浏览器之间维护了一个`Websocket`，当本地资源发生变化时，WDS会向浏览器推送更新，并带上构建时的hash，让客户端与上一次资源进行对比。客户端对比出差异后会向WDS发送`Ajax`请求来获取更改内容（文件列表、hash），这样客户端就可以再借助这些信息继续向WDS发起`jsonp`请求获取该chunk的增量更新。
+HMR的核心就是客户端从服务端拉取更新后的文件，准确的说是 chunk diff（chunk需要更新的部分），实际上WDS与浏览器之间维护了一个`Websocket`。
+
+1. 当本地资源发生变化时，WDS会向浏览器推送更新，并带上构建时的hash，让客户端与上一次资源进行对比；
+2. 客户端对比出差异后会向WDS发送`Ajax`请求来获取更改内容（文件列表、hash）；
+3. 这样客户端就可以再借助这些信息继续向WDS发起`jsonp`请求获取该chunk的增量更新。
 
 后续的部分（拿到增量更新之后如何处理？哪些状态该保留？哪些又需要更新？）由`HotModulePlugin`来完成，提供了相关API以供开发者针对自身场景进行处理，像`react-hot-loader`和`vue-loader`都是借助这些API实现HMR。
 
